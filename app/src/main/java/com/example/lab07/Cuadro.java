@@ -1,6 +1,10 @@
 package com.example.lab07;
 
-public class Cuadro {
+import android.net.Uri;
+
+import java.io.Serializable;
+
+public class Cuadro implements Serializable {
     private String imagen;
     private String autor;
     private String tecnica;
@@ -9,12 +13,12 @@ public class Cuadro {
     private String descripcion;
     private int anio;
 
-    public String getImagen() {
-        return imagen;
+    public Uri getImagen() {
+        return Uri.parse(imagen);
     }
 
-    public void setImagen(String imagen) {
-        this.imagen = imagen;
+    public void setImagen(Uri imagen) {
+        this.imagen = imagen.toString();
     }
 
     public String getAutor() {

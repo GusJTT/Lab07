@@ -1,16 +1,31 @@
 package com.example.lab07;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.util.Log;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.fragment.app.Fragment;
 
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.EditText;
+import android.net.Uri;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -19,28 +34,25 @@ import android.widget.EditText;
  */
 public class RegistroFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
 
-    // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
+    private Uri uriImagen;
+
+    //Inicializando elementos de la interfaz
+    private ImageView imgPrevImagen;
+    private EditText edtAutor;
+    private EditText edtTitulo;
+    private EditText edtTecnica;
+    private EditText edtCategoria;
+    private EditText edtDescripcion;
+    private EditText edtAnio;
 
     public RegistroFragment() {
         // Required empty public constructor
     }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment RegistroFragment.
-     */
-    // TODO: Rename and change types and number of parameters
     public static RegistroFragment newInstance(String param1, String param2) {
         RegistroFragment fragment = new RegistroFragment();
         Bundle args = new Bundle();
@@ -64,29 +76,77 @@ public class RegistroFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_registro, container, false);
-        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("SmartGallery", Context.MODE_PRIVATE);
-        EditText edtImagen = view.findViewById(R.id.edtImagen);
-        EditText edtAutor = view.findViewById(R.id.edtAutor);
-        EditText edtTitulo = view.findViewById(R.id.edtTitulo);
-        EditText edtTecnica = view.findViewById(R.id.edtTecnica);
-        EditText edtCategoria = view.findViewById(R.id.edtCategoria);
-        EditText edtDescripcion = view.findViewById(R.id.edtDescripcion);
-        EditText edtAnio = view.findViewById(R.id.edtAnio);
+        Button btnCargar = view.findViewById(R.id.btnCargarimagen);
         Button btnRegistro = view.findViewById(R.id.btnRegistro);
+        imgPrevImagen = view.findViewById(R.id.imgPrevImagen);
+        edtAutor = view.findViewById(R.id.edtAutor);
+        edtTitulo = view.findViewById(R.id.edtTitulo);
+        edtTecnica = view.findViewById(R.id.edtTecnica);
+        edtCategoria = view.findViewById(R.id.edtCategoria);
+        edtDescripcion = view.findViewById(R.id.edtDescripcion);
+        edtAnio = view.findViewById(R.id.edtAnio);
+
         btnRegistro.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SharedPreferences.Editor editor = sharedPreferences.edit();
-                editor.putString("Imagen", edtImagen.getText().toString());
-                editor.putString("Autor", edtAutor.getText().toString());
-                editor.putString("Titulo", edtTitulo.getText().toString());
-                editor.putString("Técnica", edtTecnica.getText().toString());
-                editor.putString("Categoria", edtCategoria.getText().toString());
-                editor.putString("Descripción", edtDescripcion.getText().toString());
-                editor.putInt("Año", Integer.parseInt(edtAnio.getText().toString()));
-                editor.apply();
+                guardarDatos();
             }
         });
+
+        btnCargar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                seleccionarImagen();
+            }
+        });
+
         return view;
     }
+
+    void guardarDatos() {
+        Cuadro cuadro = new Cuadro();
+        cuadro.setImagen(uriImagen);
+        cuadro.setTitulo(edtTitulo.getText().toString());
+        cuadro.setAutor(edtAutor.getText().toString());
+        cuadro.setTecnica(edtTecnica.getText().toString());
+        cuadro.setCategoria(edtCategoria.getText().toString());
+        cuadro.setDescripcion(edtDescripcion.getText().toString());
+        cuadro.setAnio(Integer.parseInt(edtAnio.getText().toString()));
+
+        File file = new File(getContext().getFilesDir(), "cuadro.data");
+        try {
+            ObjectOutput out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(cuadro);
+            out.close();
+            Log.d("TAG", "Objeto guardado correctamente en almacenamiento interno");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    void seleccionarImagen() {
+        Intent intent = new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        lanzarActivity.launch(intent);
+    }
+    ActivityResultLauncher<Intent> lanzarActivity = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Intent data = result.getData();
+                    if (data != null && data.getData() != null) {
+                        uriImagen = data.getData();
+                        Bitmap imagen = null;
+                        try {
+                            imagen = MediaStore.Images.Media.getBitmap(
+                                    getContext().getContentResolver(), uriImagen);
+                        }
+                        catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        imgPrevImagen.setImageBitmap(imagen);
+                    }
+                }
+            });
 }
